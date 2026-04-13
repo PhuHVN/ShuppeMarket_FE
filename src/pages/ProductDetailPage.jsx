@@ -3,19 +3,28 @@ import { Heart, Share2, Truck, Shield, Star, AlertCircle } from "lucide-react";
 import { useParams } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import ProductCard from "../components/ProductCard";
-import { productService } from "../services/api";
+import ReviewList from "../components/ReviewList";
+import ReviewForm from "../components/ReviewForm";
+import { productService, reviewService } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 const ProductDetailPage = () => {
   const { id } = useParams();
+  const { user, isAuthenticated } = useAuth();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [relatedProducts, setRelatedProducts] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState("");
 
   useEffect(() => {
     fetchProduct();
     fetchRelatedProducts();
+    fetchReviews();
   }, [id]);
 
   const fetchProduct = async () => {
@@ -38,6 +47,58 @@ const ProductDetailPage = () => {
       );
     } catch (error) {
       console.error("Error fetching related products:", error);
+    }
+  };
+
+  const fetchReviews = async () => {
+    try {
+      setReviewsLoading(true);
+      // Get reviews for this specific product
+      const response = await reviewService.getReviewsByProductId(id, 1, 100);
+      const productReviews = response.data.data.items || [];
+      setReviews(productReviews);
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      setReviews([]);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleAddReview = async (productId, rating, comment) => {
+    if (!isAuthenticated) {
+      alert("Vui lòng đăng nhập để đánh giá sản phẩm");
+      return;
+    }
+
+    try {
+      setSubmittingReview(true);
+      await reviewService.createReview(productId, rating, comment);
+      setReviewSuccess("Đánh giá của bạn đã được thêm thành công!");
+      // Refresh reviews
+      await fetchReviews();
+      // Clear success message after 3 seconds
+      setTimeout(() => setReviewSuccess(""), 3000);
+    } catch (error) {
+      console.error("Error adding review:", error);
+      alert("Có lỗi xảy ra khi thêm đánh giá. Vui lòng thử lại.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa đánh giá này?")) {
+      return;
+    }
+
+    try {
+      await reviewService.deleteReview(reviewId);
+      // Refresh reviews
+      await fetchReviews();
+    } catch (error) {
+      console.error("Error deleting review:", error);
+      alert("Có lỗi xảy ra khi xóa đánh giá. Vui lòng thử lại.");
     }
   };
 
@@ -157,17 +218,12 @@ const ProductDetailPage = () => {
                   <span className="text-4xl font-bold text-shopee-500">
                     {formatPrice(product.price)}
                   </span>
-                  {product.originalPrice && (
-                    <span className="text-lg text-gray-500 line-through">
-                      {formatPrice(product.originalPrice)}
-                    </span>
-                  )}
+                  <span className="text-lg text-gray-500 line-through">
+                    {formatPrice(product.price * 1.2)}
+                  </span>
                 </div>
                 <p className="text-sm text-red-500 mt-2">
-                  Tiết kiệm{" "}
-                  {product.originalPrice
-                    ? formatPrice(product.originalPrice - product.price)
-                    : "N/A"}
+                  Tiết kiệm {formatPrice(product.price * 0.2)}
                 </p>
               </div>
 
@@ -302,6 +358,57 @@ const ProductDetailPage = () => {
                   <p className="text-gray-600">{product.color || "N/A"}</p>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Related Products */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-6">Đánh Giá Sản Phẩm</h2>
+
+          {/* Success Message */}
+          {reviewSuccess && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm flex items-start gap-3">
+              <span className="text-lg">✓</span>
+              <p>{reviewSuccess}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            {/* Review Form */}
+            <div className="lg:col-span-1">
+              {isAuthenticated ? (
+                <ReviewForm
+                  productId={id}
+                  onSubmit={handleAddReview}
+                  isLoading={submittingReview}
+                />
+              ) : (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                  <p className="text-gray-600 mb-4">
+                    Vui lòng đăng nhập để đánh giá sản phẩm
+                  </p>
+                  <a
+                    href="/login"
+                    className="inline-block bg-shopee-500 text-white py-2 px-4 rounded font-medium hover:bg-shopee-600 transition"
+                  >
+                    Đăng Nhập
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Reviews List */}
+            <div className="lg:col-span-2">
+              {reviewsLoading ? (
+                <div className="text-center py-8">Đang tải đánh giá...</div>
+              ) : (
+                <ReviewList
+                  reviews={reviews}
+                  onDelete={handleDeleteReview}
+                  currentUserId={user?.id}
+                />
+              )}
             </div>
           </div>
         </div>

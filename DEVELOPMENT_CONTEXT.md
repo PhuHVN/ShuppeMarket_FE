@@ -47,26 +47,57 @@
 - ✅ URL params: `?searchTerm={keyword}&category={id}`
 - ✅ Pagination support
 
+### 3. Product Reviews Feature (April 13, 2026)
+
+**Backend Endpoints Available:**
+
+- ✅ `GET /reviews` - Danh sách reviews (paginated)
+- ✅ `GET /reviews/product/{productId}` - Reviews cho sản phẩm cụ thể (paginated) **NEW**
+- ✅ `GET /reviews/{id}` - Chi tiết review
+- ✅ `POST /reviews/product/{productId}` - Thêm review (body: {rating, comment})
+- ✅ `PUT /reviews/{id}` - Cập nhật review (body: {rating, comment}) **NOW WORKING**
+- ✅ `DELETE /reviews/{id}` - Xóa review
+
+**Frontend Components Created:**
+
+- ✅ `ReviewForm.jsx` - Form để thêm review (5-star rating + comment)
+- ✅ `ReviewList.jsx` - Hiển thị danh sách reviews
+- ✅ `ProductDetailPage.jsx` - Tích hợp reviews section
+
+**Features:**
+
+- ⭐ 5-star rating picker with hover effect
+- 💬 Comment input minimum 10 characters
+- 👤 Show reviewer name & date
+- 🗑️ Delete own reviews
+- ✨ Real-time feedback after submit
+- 🔐 Auth check - require login to review
+
 ---
 
 ## 🔑 Environment Setup (April 13, 2026)
 
 ### Frontend Environment Variables
+
 **File**: `.env` (for development)
+
 ```
 VITE_API_BASE_URL=https://localhost:7187/api/v1
 ```
 
 **Available files**:
+
 - `.env` - Development settings
 - `.env.example` - Template (copy to create new env files)
 - `.env.production` - Production settings
 
 ### Backend Environment Variables
+
 **File**: `appsettings.json` (checked in, generic config)
 **File**: `appsettings.Development.json` (local only, not in git)
 
 **Required fields in appsettings.Development.json**:
+
 ```json
 {
   "ConnectionStrings": {
@@ -120,8 +151,11 @@ ProductListPage fetches with searchTerm parameter
 ### Files Modified/Created
 
 - ✅ `src/components/Header.jsx` - Added autocomplete search
-- ✅ `src/services/api.js` - Updated productService + env variable support
+- ✅ `src/services/api.js` - Updated productService + env variable support + reviewService
 - ✅ `src/pages/ProductListPage.jsx` - Updated to use searchTerm
+- ✅ `src/pages/ProductDetailPage.jsx` - Integrated reviews display & form
+- ✅ `src/components/ReviewForm.jsx` - Form to add product reviews
+- ✅ `src/components/ReviewList.jsx` - Display reviews with ratings
 - ✅ `.env` - Frontend environment variables (dev)
 - ✅ `.env.example` - Environment template
 - ✅ `.env.production` - Production environment config
@@ -138,23 +172,30 @@ ProductListPage fetches with searchTerm parameter
 
 ### Recommended Next Steps
 
-1. **Advanced Search Features**
+1. **Advanced Review Features**
+   - ✅ Add/Delete reviews (done)
+   - 🔜 Edit own reviews (PUT /reviews/{id} - backend not implemented yet)
+   - 🔜 Review images/photos
+   - 🔜 Sort reviews by date/helpful
+   - 🔜 Filter reviews by rating
+
+2. **Advanced Search Features**
    - Filter by price range
    - Filter by seller
    - Filter by rating/reviews
    - Multiple category selection
 
-2. **UX Improvements**
+3. **UX Improvements**
    - Search history/favorites
    - "Did you mean" suggestions
    - Trending searches
 
-3. **Performance**
+4. **Performance**
    - Implement infinite scroll
    - Lazy load product images
    - Cache search results
 
-4. **Other Features**
+5. **Other Features**
    - User authentication flow
    - Shopping cart
    - Checkout process
@@ -167,6 +208,7 @@ ProductListPage fetches with searchTerm parameter
 ## 🚀 Build & Run
 
 ### Frontend Setup
+
 ```bash
 cd Shuppe_FE/Shuppe_UI
 npm install
@@ -175,6 +217,7 @@ npm run dev
 ```
 
 ### Backend Setup
+
 ```bash
 cd ShuppeMarket
 dotnet restore
@@ -191,8 +234,15 @@ dotnet run --project ShuppeMarket.API
 - Top 5 suggestions shown in real-time
 - Both desktop and mobile search implemented
 - Category & sorting filters work alongside search
+- **Reviews Feature**: Users can add/view product reviews
+  - Create Review: `POST /api/v1/reviews/product/{productId}` with `{rating, comment}`
+  - Get Reviews for Product: `GET /api/v1/reviews/product/{productId}` - dedicated endpoint for filtering
+  - Update Review: `PUT /api/v1/reviews/{id}` with `{rating, comment}` (NOT YET IMPLEMENTED IN UI)
+  - Delete Review: `DELETE /api/v1/reviews/{id}` (own reviews only)
+  - Reviews require authentication
+  - Uses dedicated `getReviewsByProductId()` endpoint for efficient product-specific queries
 
 ---
 
-**Last Updated**: April 13, 2026  
-**Status**: ✅ Search feature complete and functional
+**Last Updated**: April 13, 2026 (Review API Restructured - Dedicated Product Reviews Endpoint)  
+**Status**: ✅ Search + Reviews features complete and functional

@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://localhost:7187/api/v1";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "https://localhost:7187/api/v1";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -68,6 +69,21 @@ export const accountService = {
   getAccountById: (id) => apiClient.get(`/accounts/${id}`),
   getAllAccounts: (pageIndex = 1, pageSize = 20) =>
     apiClient.get("/accounts", { params: { pageIndex, pageSize } }),
+};
+
+export const reviewService = {
+  getAllReviews: (pageIndex = 1, pageSize = 100) =>
+    apiClient.get("/reviews", { params: { pageIndex, pageSize } }),
+  getReviewsByProductId: (productId, pageIndex = 1, pageSize = 100) =>
+    apiClient.get(`/reviews/product/${productId}`, {
+      params: { pageIndex, pageSize },
+    }),
+  getReviewById: (id) => apiClient.get(`/reviews/${id}`),
+  createReview: (productId, rating, comment) =>
+    apiClient.post(`/reviews/product/${productId}`, { rating, comment }),
+  updateReview: (id, rating, comment) =>
+    apiClient.put(`/reviews/${id}`, { rating, comment }),
+  deleteReview: (id) => apiClient.delete(`/reviews/${id}`),
 };
 
 export default apiClient;
