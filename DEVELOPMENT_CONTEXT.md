@@ -49,6 +49,45 @@
 
 ---
 
+## 🔑 Environment Setup (April 13, 2026)
+
+### Frontend Environment Variables
+**File**: `.env` (for development)
+```
+VITE_API_BASE_URL=https://localhost:7187/api/v1
+```
+
+**Available files**:
+- `.env` - Development settings
+- `.env.example` - Template (copy to create new env files)
+- `.env.production` - Production settings
+
+### Backend Environment Variables
+**File**: `appsettings.json` (checked in, generic config)
+**File**: `appsettings.Development.json` (local only, not in git)
+
+**Required fields in appsettings.Development.json**:
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "YOUR_DATABASE_CONNECTION_STRING"
+  },
+  "Jwt": {
+    "SecretKey": "YOUR_SECRET_KEY_MIN_32_CHARS",
+    "Issuer": "your-issuer",
+    "Audience": "your-audience"
+  },
+  "AdminAccount": {
+    "Email": "admin@example.com",
+    "Password": "your-password"
+  }
+}
+```
+
+**Reference**: See `appsettings.example.json` for all available options
+
+---
+
 ## 🏗️ Architecture
 
 ### Search Flow
@@ -81,8 +120,12 @@ ProductListPage fetches with searchTerm parameter
 ### Files Modified/Created
 
 - ✅ `src/components/Header.jsx` - Added autocomplete search
-- ✅ `src/services/api.js` - Updated productService
+- ✅ `src/services/api.js` - Updated productService + env variable support
 - ✅ `src/pages/ProductListPage.jsx` - Updated to use searchTerm
+- ✅ `.env` - Frontend environment variables (dev)
+- ✅ `.env.example` - Environment template
+- ✅ `.env.production` - Production environment config
+- ✅ `appsettings.example.json` - Backend configuration template
 
 ### Database/Backend
 
@@ -123,19 +166,19 @@ ProductListPage fetches with searchTerm parameter
 
 ## 🚀 Build & Run
 
-### Frontend
-
+### Frontend Setup
 ```bash
 cd Shuppe_FE/Shuppe_UI
 npm install
+# Create .env if not exists, copy from .env.example
 npm run dev
 ```
 
-### Backend
-
+### Backend Setup
 ```bash
 cd ShuppeMarket
 dotnet restore
+# Create appsettings.Development.json with your local config
 dotnet run --project ShuppeMarket.API
 ```
 
