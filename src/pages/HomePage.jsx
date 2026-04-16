@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { Zap, Truck, ShieldCheck, Headphones, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 import MainLayout from "../layouts/MainLayout";
 import ProductCard from "../components/ProductCard";
-import { productService } from "../services/api";
+import { productService, cartService, reviewService } from "../services/api";
 
 const HomePage = () => {
-  const { categories } = useAuth();
+  const navigate = useNavigate();
+  const { categories, isAuthenticated } = useAuth();
+  const { incrementCartCount } = useCart();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState(null);
+  const [cartSuccess, setCartSuccess] = useState("");
 
   useEffect(() => {
     fetchProducts();
@@ -18,7 +23,63 @@ const HomePage = () => {
   const fetchProducts = async () => {
     try {
       const response = await productService.getAllProducts(1, 12);
-      setProducts(response.data.data.items || []);
+      const productsData = response.data.data.items || [];
+      console.log("Products fetched:", productsData);
+
+      // Fetch overall stars and reviews count for each product
+      const productsWithStars = await Promise.all(
+        productsData.map(async (product) => {
+          let overallStars = 0;
+          let reviewCount = 0;
+
+          try {
+            // Fetch overall stars
+            const starsResponse =
+              await reviewService.getOverallStarsByProductId(product.id);
+            const starsValue =
+              starsResponse.data?.data ?? starsResponse.data ?? 0;
+            overallStars = typeof starsValue === "number" ? starsValue : 0;
+            console.log(`Stars for product ${product.id}:`, overallStars);
+          } catch (error) {
+            console.error(
+              `Error fetching stars for product ${product.id}:`,
+              error.response?.status,
+              error.response?.data,
+            );
+          }
+
+          try {
+            // Fetch reviews count
+            const reviewsResponse = await reviewService.getReviewsByProductId(
+              product.id,
+              1,
+              100,
+            );
+            reviewCount =
+              reviewsResponse.data?.data?.totalCount ||
+              reviewsResponse.data?.data?.items?.length ||
+              0;
+            console.log(
+              `Reviews count for product ${product.id}:`,
+              reviewCount,
+            );
+          } catch (error) {
+            console.error(
+              `Error fetching reviews for product ${product.id}:`,
+              error.response?.status,
+            );
+          }
+
+          return {
+            ...product,
+            overallStars: overallStars,
+            reviews: reviewCount,
+          };
+        }),
+      );
+
+      console.log("Products with stars and reviews:", productsWithStars);
+      setProducts(productsWithStars);
     } catch (error) {
       console.error("Error fetching products:", error);
     } finally {
@@ -26,8 +87,47 @@ const HomePage = () => {
     }
   };
 
+  const handleAddToCart = async (product) => {
+    if (!isAuthenticated) {
+      alert("Vui lòng đăng nhập để thêm vào giỏ hàng");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setAddingToCart(product.id);
+      setCartSuccess("");
+
+      await cartService.addToCart([
+        {
+          productId: product.id,
+          quantity: 1,
+        },
+      ]);
+
+      setCartSuccess(`"${product.name}" đã được thêm vào giỏ hàng!`);
+      incrementCartCount();
+      setTimeout(() => setCartSuccess(""), 3000);
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      alert(
+        error.response?.data?.message || "Có lỗi xảy ra. Vui lòng thử lại.",
+      );
+    } finally {
+      setAddingToCart(null);
+    }
+  };
+
   return (
     <MainLayout>
+      {/* Success Message */}
+      {cartSuccess && (
+        <div className="bg-green-50 border-l-4 border-green-500 text-green-700 px-4 py-4 rounded-b m-4 flex items-center gap-3 fixed top-14 left-4 right-4 z-50 shadow-lg">
+          <span className="text-2xl">✓</span>
+          <span className="font-medium">{cartSuccess}</span>
+        </div>
+      )}
+
       {/* Hero Banner Section */}
       <div className="bg-gradient-to-r from-shopee-500 via-shopee-600 to-shopee-700 text-white py-16 relative overflow-hidden">
         <div className="absolute -right-20 -top-20 w-80 h-80 bg-white/10 rounded-full"></div>
@@ -160,7 +260,12 @@ const HomePage = () => {
               products
                 .slice(0, 4)
                 .map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={handleAddToCart}
+                    isAdding={addingToCart === product.id}
+                  />
                 ))
             ) : (
               <div className="col-span-full text-center py-12 text-gray-500">
@@ -202,7 +307,12 @@ const HomePage = () => {
             </div>
           ) : products.length > 0 ? (
             products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={handleAddToCart}
+                isAdding={addingToCart === product.id}
+              />
             ))
           ) : (
             <div className="col-span-full text-center py-12 text-gray-500">

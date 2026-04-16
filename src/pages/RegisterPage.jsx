@@ -72,7 +72,8 @@ const RegisterPage = () => {
         formData.fullName,
         formData.phone,
       );
-      navigate("/login");
+      // Redirect to OTP verification page with email
+      navigate("/verify-otp", { state: { email: formData.email } });
     } catch (err) {
       setError(err.response?.data?.message || "Đăng ký thất bại");
     } finally {

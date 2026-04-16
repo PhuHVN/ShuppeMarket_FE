@@ -3,7 +3,11 @@ import { ChevronDown, Filter } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import ProductCard from "../components/ProductCard";
-import { productService, categoryService } from "../services/api";
+import {
+  productService,
+  categoryService,
+  reviewService,
+} from "../services/api";
 
 const ProductListPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -62,7 +66,53 @@ const ProductListPage = () => {
         items.sort((a, b) => b.price - a.price);
       }
 
-      setProducts(items);
+      // Fetch overall stars and reviews count for each product
+      const itemsWithStars = await Promise.all(
+        items.map(async (product) => {
+          let overallStars = 0;
+          let reviewCount = 0;
+
+          try {
+            // Fetch overall stars
+            const starsResponse =
+              await reviewService.getOverallStarsByProductId(product.id);
+            const starsValue =
+              starsResponse.data?.data ?? starsResponse.data ?? 0;
+            overallStars = typeof starsValue === "number" ? starsValue : 0;
+          } catch (error) {
+            console.error(
+              `Error fetching stars for product ${product.id}:`,
+              error.response?.status,
+            );
+          }
+
+          try {
+            // Fetch reviews count
+            const reviewsResponse = await reviewService.getReviewsByProductId(
+              product.id,
+              1,
+              100,
+            );
+            reviewCount =
+              reviewsResponse.data?.data?.totalCount ||
+              reviewsResponse.data?.data?.items?.length ||
+              0;
+          } catch (error) {
+            console.error(
+              `Error fetching reviews for product ${product.id}:`,
+              error.response?.status,
+            );
+          }
+
+          return {
+            ...product,
+            overallStars: overallStars,
+            reviews: reviewCount,
+          };
+        }),
+      );
+
+      setProducts(itemsWithStars);
       setTotalPages(response.data.data.totalPages || 1);
     } catch (error) {
       console.error("Error fetching products:", error);

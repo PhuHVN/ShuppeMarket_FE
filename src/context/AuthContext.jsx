@@ -98,6 +98,11 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  const verifyOtp = async (email, otp) => {
+    const response = await authService.verifyOtp(email, otp);
+    return response.data;
+  };
+
   const registerAsSeller = async (accountId, sellerData) => {
     try {
       const response = await sellerService.registerSeller(
@@ -143,6 +148,7 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         login,
         register,
+        verifyOtp,
         registerAsSeller,
         logout,
         fetchCurrentUser,

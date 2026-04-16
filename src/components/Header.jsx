@@ -11,10 +11,12 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { productService } from "../services/api";
+import { useCart } from "../context/CartContext";
+import { productService, cartService } from "../services/api";
 
 const Header = () => {
   const { user, isAuthenticated, logout, isSeller, isAdmin } = useAuth();
+  const { cartCount, updateCartCount } = useCart();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -23,6 +25,28 @@ const Header = () => {
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const searchRef = useRef(null);
   const timeoutRef = useRef(null);
+
+  // Fetch cart count when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchCartCount();
+      // Set up interval to refresh cart count every 10 seconds
+      const interval = setInterval(fetchCartCount, 10000);
+      return () => clearInterval(interval);
+    } else {
+      updateCartCount(0);
+    }
+  }, [isAuthenticated, updateCartCount]);
+
+  const fetchCartCount = async () => {
+    try {
+      const response = await cartService.getCart();
+      const items = response.data.data?.cartDetails || [];
+      updateCartCount(items.length);
+    } catch (error) {
+      console.error("Error fetching cart count:", error);
+    }
+  };
 
   // Debounced search for suggestions
   useEffect(() => {
@@ -227,15 +251,18 @@ const Header = () => {
 
             {/* Right Actions */}
             <div className="flex items-center gap-1 sm:gap-2">
-              <button
+              <Link
+                to="/cart"
                 className="relative p-2 hover:bg-gray-100 rounded-lg transition"
                 title="Giỏ hàng"
               >
                 <ShoppingCart size={22} className="text-gray-700" />
-                <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center">
-                  0
-                </span>
-              </button>
+                {cartCount > 0 && (
+                  <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-semibold rounded-full w-5 h-5 flex items-center justify-center">
+                    {cartCount > 9 ? "9+" : cartCount}
+                  </span>
+                )}
+              </Link>
 
               {/* Profile Avatar Button */}
               {isAuthenticated && (

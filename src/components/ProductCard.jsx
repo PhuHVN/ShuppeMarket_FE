@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Star, Heart, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const ProductCard = ({ product, onAddToCart = () => {} }) => {
+const ProductCard = ({ product, onAddToCart = () => {}, isAdding = false }) => {
   const [isWishlisted, setIsWishlisted] = useState(false);
 
   const formatPrice = (price) => {
@@ -80,7 +80,7 @@ const ProductCard = ({ product, onAddToCart = () => {} }) => {
                 key={i}
                 size={13}
                 className={
-                  i < Math.floor(product.rating || 4)
+                  i < Math.floor(product.overallStars || product.rating || 4)
                     ? "fill-current"
                     : "text-gray-300"
                 }
@@ -120,10 +120,11 @@ const ProductCard = ({ product, onAddToCart = () => {} }) => {
         {/* Add to Cart Button */}
         <button
           onClick={() => onAddToCart(product)}
-          className="mt-auto w-full bg-shopee-500 text-white py-2 rounded font-medium text-sm hover:bg-shopee-600 transition flex items-center justify-center gap-2 active:scale-95"
+          disabled={isAdding}
+          className="mt-auto w-full bg-shopee-500 text-white py-2 rounded font-medium text-sm hover:bg-shopee-600 transition flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <ShoppingCart size={16} />
-          Thêm vào giỏ
+          {isAdding ? "Đang thêm..." : "Thêm vào giỏ"}
         </button>
       </div>
     </div>

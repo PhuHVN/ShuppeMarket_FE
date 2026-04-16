@@ -25,6 +25,8 @@ export const authService = {
   loginGoogle: (token) => apiClient.post("/auth/login-google", { token }),
   register: (email, password, fullName, phone) =>
     apiClient.post("/auth/register", { email, password, fullName, phone }),
+  verifyOtp: (email, otp) =>
+    apiClient.post("/auth/verify-otp", null, { params: { email, otp } }),
   getCurrentUser: () => apiClient.get("/auth/me"),
   logout: () => {
     localStorage.removeItem("token");
@@ -84,6 +86,16 @@ export const reviewService = {
   updateReview: (id, rating, comment) =>
     apiClient.put(`/reviews/${id}`, { rating, comment }),
   deleteReview: (id) => apiClient.delete(`/reviews/${id}`),
+  getOverallStarsByProductId: (productId) =>
+    apiClient.get(`/reviews/product/${productId}/overall-stars`),
+};
+
+export const cartService = {
+  addToCart: (products) => apiClient.post("/cart/add", { products }),
+  getCart: () => apiClient.get("/cart/my-cart"),
+  removeFromCart: (detailId) => apiClient.delete(`/cart/remove/${detailId}`),
+  updateCartItem: (detailId, quantity) =>
+    apiClient.put(`/cart/update/${detailId}/quantity/${quantity}`),
 };
 
 export default apiClient;

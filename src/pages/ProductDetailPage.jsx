@@ -1,30 +1,38 @@
 import React, { useState, useEffect } from "react";
 import { Heart, Share2, Truck, Shield, Star, AlertCircle } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import ProductCard from "../components/ProductCard";
 import ReviewList from "../components/ReviewList";
 import ReviewForm from "../components/ReviewForm";
-import { productService, reviewService } from "../services/api";
+import { productService, reviewService, cartService } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 
 const ProductDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
+  const { incrementCartCount } = useCart();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [overallStars, setOverallStars] = useState(0);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState("");
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [cartSuccess, setCartSuccess] = useState("");
+  const [cartError, setCartError] = useState("");
 
   useEffect(() => {
     fetchProduct();
     fetchRelatedProducts();
     fetchReviews();
+    fetchOverallStars();
   }, [id]);
 
   const fetchProduct = async () => {
@@ -65,6 +73,16 @@ const ProductDetailPage = () => {
     }
   };
 
+  const fetchOverallStars = async () => {
+    try {
+      const response = await reviewService.getOverallStarsByProductId(id);
+      setOverallStars(response.data.data || 0);
+    } catch (error) {
+      console.error("Error fetching overall stars:", error);
+      setOverallStars(0);
+    }
+  };
+
   const handleAddReview = async (productId, rating, comment) => {
     if (!isAuthenticated) {
       alert("Vui lòng đăng nhập để đánh giá sản phẩm");
@@ -75,8 +93,9 @@ const ProductDetailPage = () => {
       setSubmittingReview(true);
       await reviewService.createReview(productId, rating, comment);
       setReviewSuccess("Đánh giá của bạn đã được thêm thành công!");
-      // Refresh reviews
+      // Refresh reviews and stars
       await fetchReviews();
+      await fetchOverallStars();
       // Clear success message after 3 seconds
       setTimeout(() => setReviewSuccess(""), 3000);
     } catch (error) {
@@ -99,6 +118,41 @@ const ProductDetailPage = () => {
     } catch (error) {
       console.error("Error deleting review:", error);
       alert("Có lỗi xảy ra khi xóa đánh giá. Vui lòng thử lại.");
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!isAuthenticated) {
+      alert("Vui lòng đăng nhập để thêm vào giỏ hàng");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setAddingToCart(true);
+      setCartError("");
+      setCartSuccess("");
+
+      await cartService.addToCart([
+        {
+          productId: id,
+          quantity: quantity,
+        },
+      ]);
+
+      setCartSuccess("Sản phẩm đã được thêm vào giỏ hàng!");
+      incrementCartCount();
+      setQuantity(1);
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setCartSuccess(""), 3000);
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      setCartError(
+        error.response?.data?.message || "Có lỗi xảy ra. Vui lòng thử lại.",
+      );
+    } finally {
+      setAddingToCart(false);
     }
   };
 
@@ -200,7 +254,7 @@ const ProductDetailPage = () => {
                       key={i}
                       size={18}
                       className={
-                        i < Math.floor(product.rating || 4)
+                        i < Math.floor(overallStars)
                           ? "fill-yellow-400 text-yellow-400"
                           : "text-gray-300"
                       }
@@ -208,7 +262,7 @@ const ProductDetailPage = () => {
                   ))}
                 </div>
                 <span className="text-gray-600">
-                  ({product.reviews || 0} đánh giá)
+                  ({reviews.length} đánh giá)
                 </span>
               </div>
 
@@ -301,14 +355,30 @@ const ProductDetailPage = () => {
                 </div>
               </div>
 
+              {/* Messages */}
+              {cartError && (
+                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded mb-4">
+                  {cartError}
+                </div>
+              )}
+              {cartSuccess && (
+                <div className="bg-green-50 border-l-4 border-green-500 text-green-700 px-4 py-3 rounded mb-4">
+                  ✓ {cartSuccess}
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <button className="px-6 py-3 border border-shopee-500 text-shopee-500 rounded font-bold hover:bg-shopee-50 transition flex items-center justify-center gap-2">
                   <Heart size={20} />
                   Yêu thích
                 </button>
-                <button className="px-6 py-3 bg-shopee-500 text-white rounded font-bold hover:bg-shopee-600 transition flex items-center justify-center gap-2">
-                  Thêm vào giỏ
+                <button
+                  onClick={handleAddToCart}
+                  disabled={addingToCart}
+                  className="px-6 py-3 bg-shopee-500 text-white rounded font-bold hover:bg-shopee-600 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {addingToCart ? "Đang thêm..." : "Thêm vào giỏ"}
                 </button>
               </div>
               <button className="w-full px-6 py-3 bg-white border border-shopee-500 text-shopee-500 rounded font-bold hover:bg-shopee-50 transition flex items-center justify-center gap-2">
